@@ -18,10 +18,10 @@ from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.ui import Console
 
 def create_openai_model_client():
-    """创建 OpenAI 模型客户端用于测试"""
+    """创建 OpenAI 模型客户端"""
     return OpenAIChatCompletionClient(
         model=os.getenv("LLM_MODEL_ID", "gpt-4o"),
-        api_key=os.getenv("LLM_API_KEY"),
+        api_key=os.getenv("OPENAI_KEY"),
         base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
     )
 
@@ -101,7 +101,9 @@ def create_code_reviewer(model_client):
     )
 
 def create_user_proxy():
-    """创建用户代理智能体"""
+    """创建用户代理智能体
+    他不需要大模型
+    """
     return UserProxyAgent(
         name="UserProxy",
         description="""用户代理，负责以下职责：
@@ -118,7 +120,7 @@ async def run_software_development_team():
     
     print("🔧 正在初始化模型客户端...")
     
-    # 先使用标准的 OpenAI 客户端测试
+    # 先创建一个标准的 OpenAI 客户端
     model_client = create_openai_model_client()
     
     print("👥 正在创建智能体团队...")
@@ -134,14 +136,16 @@ async def run_software_development_team():
     
     # 创建团队聊天
     team_chat = RoundRobinGroupChat(
+        # 参与者顺序决定了sub-agents发言的先后次序
         participants=[
             product_manager,
             engineer, 
             code_reviewer,
             user_proxy
         ],
-        termination_condition=termination,
-        max_turns=20,  # 增加最大轮次
+        # 终止条件，当任何消息中包含关键词 "TERMINATE" 时，对话便结束
+        termination_condition=termination,    # ← 业务终止条件
+        max_turns=20,  # 最大轮次，              ← 安全兜底条件
     )
     
     # 定义开发任务

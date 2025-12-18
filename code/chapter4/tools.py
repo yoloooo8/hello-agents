@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
-from serpapi import SerpApiClient
+import serpapi
+from serpapi import Client
 from typing import Dict, Any
 
 def search(query: str) -> str:
@@ -20,13 +21,14 @@ def search(query: str) -> str:
         params = {
             "engine": "google",
             "q": query,
-            "api_key": api_key,
             "gl": "cn",  # 国家代码
             "hl": "zh-cn", # 语言代码
         }
-        
-        client = SerpApiClient(params)
-        results = client.get_dict()
+
+        # serpapi 0.1.x 使用 Client
+        client = Client(api_key=api_key)
+        results_obj = client.search(params)
+        results = results_obj.as_dict() if hasattr(results_obj, "as_dict") else results_obj
         
         # 智能解析：优先寻找最直接的答案
         if "answer_box_list" in results:

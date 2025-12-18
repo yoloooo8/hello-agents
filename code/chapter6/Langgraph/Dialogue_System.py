@@ -21,6 +21,9 @@ load_dotenv()
 
 # 定义状态结构
 class SearchState(TypedDict):
+    # Annotated ：Python 的 Annotated 类型
+    # add_messages ：LangGraph 的 Reducer 函数
+    # 在更新messages字段时，不要覆盖，而是用 add_messages 函数合并，add_messages 函数就是在list后面追加，而不是把原来的值全部覆盖。
     messages: Annotated[list, add_messages]
     user_query: str        # 用户查询
     search_query: str      # 优化后的搜索查询
@@ -31,12 +34,13 @@ class SearchState(TypedDict):
 # 初始化模型和Tavily客户端
 llm = ChatOpenAI(
     model=os.getenv("LLM_MODEL_ID", "gpt-4o-mini"),
-    api_key=os.getenv("LLM_API_KEY"),
+    api_key=os.getenv("OPENAI_API_KEY"),
     base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1"),
     temperature=0.7
 )
 
 # 初始化Tavily客户端
+# 付费API，专门为llm使用的搜索引擎api，类似：SerpAPI
 tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
 def understand_query_node(state: SearchState) -> SearchState:
@@ -44,6 +48,7 @@ def understand_query_node(state: SearchState) -> SearchState:
     
     # 获取最新的用户消息
     user_message = ""
+    # reversed：反向遍历，从最新的消息开始，找到第一个HumanMessage
     for msg in reversed(state["messages"]):
         if isinstance(msg, HumanMessage):
             user_message = msg.content
@@ -188,7 +193,7 @@ def create_search_assistant():
     workflow.add_edge("answer", END)
     
     # 编译图
-    memory = InMemorySaver()
+    memory = InMemorySaver()  # 内存保存器，把对话历史保存到内存中，支持多会话管理
     app = workflow.compile(checkpointer=memory)
     
     return app

@@ -16,7 +16,7 @@ class HelloAgentsLLM:
         初始化客户端。优先使用传入参数，如果未提供，则从环境变量加载。
         """
         self.model = model or os.getenv("LLM_MODEL_ID")
-        apiKey = apiKey or os.getenv("LLM_API_KEY")
+        apiKey = apiKey or os.getenv("OPENAI_KEY")
         baseUrl = baseUrl or os.getenv("LLM_BASE_URL")
         timeout = timeout or int(os.getenv("LLM_TIMEOUT", 60))
         
@@ -41,6 +41,7 @@ class HelloAgentsLLM:
             # 处理流式响应
             print("✅ 大语言模型响应成功:")
             collected_content = []
+            # 接口调用返回值是一个流式响应，需要逐个chunk处理，把内容拼接到一起
             for chunk in response:
                 content = chunk.choices[0].delta.content or ""
                 print(content, end="", flush=True)
